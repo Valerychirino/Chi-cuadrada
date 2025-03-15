@@ -1,0 +1,220 @@
+---
+title: "Análisis categórico"
+author: "Valery Liliana Chirino Salazar"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+0. Llamamos a las librerias
+```{r}
+install.packages("car") #esta es la carga de el paquete llamado car
+install.packages("emmeans") #cargamos paquete emmeans
+install.packages("ggpubr") ##cargamos paquete ggpubr
+library(car) #apartir de aqui llamos a todas las librerias que vamos a utilizar
+library(tidyverse)
+library(emmeans)
+library(ggplot2)
+library(ggpubr)
+library(corrplot)
+theme_set(theme_pubr())
+```
+1.¿Hay alguna relación estadisticamente significativa entre el color de ojos y el color de cabello?
+
+
+```{r}
+HairEyeColor
+HEC1<-apply(HairEyeColor, c(1,2), sum) #Apply aplica operacion, suma los datos de la tabla llamada HairEyeColor y lo covierte en una tabla solo de color de cabellos vs color de ojos 
+chi.HEC1<-chisq.test(HEC1) #aqui se realiza una prueba chi-cuadrada para ver si hay relación entre color de cabello y color de ojos. #chisq es para tipos de variables cualitativas o cuantitativas
+round(chi.HEC1$residuals, 2) #muestra residuos estandarizados redondeados a 2 decimales para ver qué combinaciones tienen más o menos frecuencia de la esperada.
+corrplot(chi.HEC1$residuals, is.cor = FALSE) #crea un grafico de mosaic plot tipo "balloon" que genera un circulo,miestras mas grande y mas intenso sea el color del circulo, indica mayor correlacion 
+#Cuanto mas grande es la muestra tiene mayor nivel de significancia
+
+``` 
+Los residuos positivos estan en azul 
+Los residuos negativos estan en rojo
+¿Qué podemos inferir?
+El color azul al ser residuos estandarizados positivos demuestran que son mas frecuentes de lo esperado
+Y los rojos al ser negativos demuestran que fueron combinaciones menos frecuentes de lo esperado como el color de piel negra y el color de ojos azules. El circulo de color azul mas fuerte se encontro en la combinacion de piel rubia y ojos azules. Y el circulo rojo mas grande y de color mas potente fue la combinacion blond brown.
+
+Por lo que podemos observar en el grafico y en la tabla,si existe evidencia estadistica de que exista correlacion entre el color de ojos y el color de cabello. Los residuos estandarizados de la tabla indican como se desvian las frecuencias observadas de las esperadas bajo la hipotesis nula :independencia entre color de ojos y color de cabello. Los resultados varian entre mayor a 2 o menores a -2, suelen considerarse  significativas.
+Existe una relación estadísticamente significativa entre el color de ojos y el color de cabello, ya que varias combinaciones específicas de colores de ojos y cabello son mucho más o menos frecuentes de lo que se esperaría si fueran independientes.
+
+
+
+Visualizar datos categóricos
+```{r}
+df <- as.data.frame(HairEyeColor) # Convierte el conjunto de datos HairEyeColor en un data.frame y lo asigna a la variable df
+head(df) #simplemente esta pidiendo visualizar los datos
+```
+Creemos una gráfica de barras con el color de cabello como el eje x, el relleno con el color de ojos y dividamos la gráfica en paneles múltiples por Sexo
+```{r}
+ggplot(df, aes(x = Hair, y = Freq))+ #El eje X muestra los diferentes tipos de cabello.El eje Y muestra la frecuencia de cada tipo de cabello.
+  geom_bar(
+    aes(fill = Eye),
+    stat = "identity",
+    color = "white",
+    position = position_dodge(0.9) #Las barras se colocan separadas.
+    )+
+  facet_wrap(~Sex) +  #Se crea un gráfico separado para cada sexo.
+  fill_palette("jco") #Aplica una paleta de colores "jco" a las barras.
+```
+Gráfica de esferas
+```{r}
+ggballoonplot(df, x = "Hair", y = "Eye", size = "Freq",
+              fill = "Freq", facet.by = "Sex",
+              ggtheme = theme_bw()) +
+  scale_fill_viridis_c(option = "C")
+#x  Muestra los diferentes tipos de cabello en el eje X.
+#y diferentes colores de ojos en el eje Y.
+#size El tamaño de cada burbuja es proporcional a la frecuencia
+#fill El color de cada burbuja también depende de la frecuencia (Freq).
+#facet.by = "Sex": Se crea un gráfico separado para cada sexo.
+```
+Gráfica de mosaico
+```{r}
+install.packages("vcd") #Instala paquete vcd
+library(vcd) #llama a esa libreria
+mosaic(HairEyeColor, shade = TRUE, legend = TRUE, main = "Relación entre colores") #Crea un gráfico de mosaico con los datos de HairEyeColor, mostrando la relación entre variables (color de cabello y ojos), usando:
+```
+
+
+RETO POR PAREJAS
+Considera el datset housetasks.
+Calcula el chi cuadrado.
+Gráfica.
+Interpreta.
+
+
+2. Trabajemos un modelo de regresión con datos categóricos
+```{r}
+install.packages("housetasks") #Apartir de esta linea en todas las lineas que dice install es porque esta instalando en nuestro trabajo los paquetes con esos nombres.
+install.packages("factoextra")
+install.packages("FactoMineR")
+install.packages("Rtools")
+install.packages("corrplot")
+library(corrplot) #Apartir de aqui en todas las lineas que dice library es porque estamos llamando las librerias de esos nombres
+library(factoextra)
+library(FactoMineR)
+data(housetasks) #Carga el conjunto de datos housetasks, que viene con el paquete housetasks
+```
+```{r}
+housetasks #Hace referencia al conjunto de datos que fue cargado previamente. Es un objeto que contiene una tabla de datos sobre las tareas domésticas.
+housetasks<-apply(housetasks, c(1,2), sum) #aplica la función sum sobre  filas y columnas de la tabla housetasks. Está sumando todos los valores de cada celda en la tabla, lo que puede transformar los valores originales de las tareas domésticas en una tabla de sumas.
+chi.house<-chisq.test(housetasks) # Aqui se realiza una prueba de chi-cuadrado la tabla housetasks (que ahora contiene las sumas). Esta prueba se usa comúnmente para evaluar la independencia entre dos variables categóricas, en este caso se aplica en la tabla de tareas domésticas.
+round(chi.house$residuals, 2) #Esta línea redondea los residuos a dos decimales para mostrarlos de manera más limpia.
+corrplot(chi.house$residuals, is.cor = FALSE, #Esta línea utiliza el paquete corrplot para crear una visualización de los residuos de la prueba de chi-cuadrado
+         col=colorRampPalette (c("blue","red"))(200)) #Especifica el color del gráfico, los valores bajos de los residuos se muestran en azul y los valores altos en rojo, utilizando una paleta de colores que va de azul a rojo en 200 colores diferentes.
+```
+```{r}
+chi.house$statistic
+chi.house$parameter
+```
+INTERPRETACIÓN:
+
+El análisis de chi-cuadrado de las tareas domésticas muestra una relación clara y estadísticamente significativa entre las tareas realizadas y la persona encargada de ellas, con un valor de X² = 1944.5 y 36 grados de libertad ,un valor alto, que demuestra que las diferencias entre las tareas observadas y las esperadas son mucho mayores de lo que se podría esperar si la distribución fuera aleatoria.
+Esto indica que la distribución de las responsabilidades no es aleatoria, sino que está influenciada por patrones tradicionales de género. Las tareas del hogar no se distribuyen de manera equitativa, lo que refleja la existencia de roles de género tradicionales que asignan ciertas actividades principalmente a las mujeres y otras a los hombres.
+
+En general, segun nuestros resultados obtenidos en las tablas y la interpretacion de nuestro grafico identificando los circulos con mayor tamaño y mas potentes en color, tenemos que las mujeres tienden a encargarse de tareas como la lavandería, la limpieza y la preparación de las comidas, con desviaciones significativas que reflejan una mayor participación de ellas en estas actividades. Por otro lado, tareas como las reparaciones y la conducción siguen siendo predominantemente realizadas por los hombres, lo que refuerza los estereotipos de género asociados a habilidades técnicas o físicas. Sin embargo, se observa una tendencia hacia una distribución más equitativa en áreas como las finanzas o el manejo de seguros, lo que sugiere que algunas tareas están siendo compartidas de manera más igualitaria entre los miembros del hogar.
+
+Al parecer de acuerdo a este estudio,aunque persisten patrones tradicionales en la asignación de tareas domésticas, hay indicios de un cambio hacia la equidad en algunos aspectos. La distribución desigual de las responsabilidades refleja las dinámicas de poder y los roles sociales que han predominado en muchas culturas.En conjunto, los resultados sugieren que, aunque las mujeres siguen asumiendo la mayoría de las tareas del hogar, la tendencia está comenzando a cambiar en algunas áreas, lo que podría ser un indicio de un movimiento hacia una mayor igualdad de género en la distribución de responsabilidades dentro del hogar.
+
+```{r}
+
+dat <- read.csv("prestige.csv")
+datos<-Prestige
+```
+Observemos nuestros datos
+```{r}
+
+```
+¿Hay diferencias en prestigio entre los tres tipos de profesiones?
+Hagamos una jitter plot
+```{r}
+set.seed(100) 
+datos %>%
+  ggplot(aes(type, prestige, colour = type)) +
+  geom_jitter(height = 0,
+              width = .1,
+              show.legend = FALSE) +
+  ylim(0,100)
+```
+
+Quitemos los NA con tidyverse
+```{r}
+datos %>%
+  filter(is.na(type))
+```
+
+Hagamos el modelo
+```{r}
+datos_sin_NA<-datos  %>%
+  select(prestige, type) %>%
+  na.omit()
+#Convierte la variable type a factor
+datos$type<-as.factor(datos$type)
+type_mod       <- 
+lm(prestige ~ type, data = datos_sin_NA)
+summary(type_mod)
+
+```
+¿Y las demás combinaciones?
+```{r}
+emmeans(type_mod, pairwise ~ type)
+```
+
+Ahora veamos un modelo multinomial.
+Vamos a ajustar un modelo multinomial para predecir la especie de una flor en función de sus características morfológicas.
+
+```{r}
+#library(nnet)  # Para el modelo multinomial
+#library(dplyr)
+data(iris)
+iris$Species <- as.factor(iris$Species)
+
+```
+Modelo
+```{r}
+# Ajustar modelo multinomial
+modelo_iris <- multinom(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, data = iris)
+
+# Resumen del modelo
+summary(modelo_iris)
+exp(coef(modelo_iris))#Odds ratios para interpretar
+#la importancia de cada variable
+```
+Predicciones
+```{r}
+predicciones <- predict(modelo_iris, type = "class")
+head(predicciones)
+
+```
+Matriz de confusión
+
+```{r}
+table(Predicho = predicciones, Real = iris$Species)
+
+```
+Exactitud del modelo
+```{r}
+mean(predicciones == iris$Species)
+
+```
+```{r}
+#library(ggplot2)
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, color = Species)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  labs(title = "Distribución de las especies según Petal Length y Petal Width")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
